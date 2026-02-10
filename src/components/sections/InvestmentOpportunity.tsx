@@ -1,136 +1,179 @@
 import { motion } from 'framer-motion'
-import {
-  Database,
-  Globe,
-  FileText,
-  Brain,
-  Star,
-} from 'lucide-react'
-import SectionWrapper from '../SectionWrapper'
-import AgentNode from '../AgentNode'
-import { useCases } from '../../data/useCases'
+import { Star } from 'lucide-react'
+import type { ChatMessage } from '../ChatSimulation'
+import type { TraceStep } from '../AgentReasoningTrace'
+import type { OrchestratorConfig } from '../UseCaseDemo'
 
-const mapPins = [
-  { x: 55, y: 35, label: 'Al Majaz', score: 92, delay: 0.8 },
-  { x: 72, y: 48, label: 'Al Layyeh', score: 87, delay: 1.2 },
-  { x: 40, y: 55, label: 'Muwaileh', score: 85, delay: 1.6 },
-  { x: 60, y: 68, label: 'Al Nahda', score: 78, delay: 2.0 },
-  { x: 35, y: 40, label: 'Al Khan', score: 74, delay: 2.4 },
+export const chatMessages: ChatMessage[] = [
+  {
+    role: 'user',
+    content: 'Evaluate investment potential of the Al Majaz waterfront mixed-use development.',
+    delay: 400,
+  },
+  {
+    role: 'assistant',
+    content: 'Starting multi-agent analysis on Al Majaz waterfront. I\'ll research market comps, check regulatory status, and run financial scoring. One moment...',
+    delay: 3000,
+  },
+  {
+    role: 'assistant',
+    content: 'Market research complete: 23 comparable developments found. Avg ROI 18.7%, occupancy 94%. Population growth in the zone is +12% YoY with median income $78K.',
+    delay: 6500,
+  },
+  {
+    role: 'user',
+    content: 'What about zoning and regulatory risk?',
+    delay: 8000,
+  },
+  {
+    role: 'assistant',
+    content: 'Zone is approved for mixed-use (height limit 45m, FAR 3.2). Shurooq has 3 active permits with no violations and is eligible for expedited review. Regulatory risk: LOW.',
+    delay: 10500,
+  },
+  {
+    role: 'user',
+    content: 'Give me the final score and ROI projection.',
+    delay: 12000,
+  },
+  {
+    role: 'assistant',
+    content: 'Final score: 92/100. Projected IRR: 21.3%, NPV: $12.8M, payback: 4.2 years. Composite risk: 0.28 (LOW). This is a top-tier opportunity with strong demographic tailwinds.',
+    delay: 14500,
+  },
 ]
 
-const opportunities = [
-  { name: 'Al Majaz Waterfront Mixed-Use', score: 92, sector: 'Real Estate' },
-  { name: 'Sharjah Book Authority Hub', score: 87, sector: 'Culture' },
-  { name: 'Muwaileh Smart District', score: 85, sector: 'Technology' },
+export const reasoningSteps: TraceStep[] = [
+  {
+    type: 'thinking',
+    agent: 'Supervisor',
+    content: '"Need to evaluate investment potential of Al Majaz waterfront development..."',
+    delay: 600,
+  },
+  {
+    type: 'tool_call',
+    agent: 'MarketResearch',
+    content: 'search_property_listings(region="Al Majaz", type="mixed-use")',
+    delay: 1400,
+  },
+  {
+    type: 'observation',
+    content: 'Found 23 comparable developments, avg ROI 18.7%, occupancy 94%',
+    delay: 2200,
+  },
+  {
+    type: 'tool_call',
+    agent: 'MarketResearch',
+    content: 'fetch_demographic_data(zone="Al Majaz", radius_km=5)',
+    delay: 3000,
+  },
+  {
+    type: 'observation',
+    content: 'Population growth +12% YoY, median income $78K, demand index: HIGH',
+    delay: 3800,
+  },
+  {
+    type: 'thinking',
+    agent: 'Supervisor',
+    content: '"ROI above threshold. Delegating regulatory check..."',
+    delay: 4400,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Regulatory',
+    content: 'query_zoning_laws(zone="Al Majaz", project_type="mixed-use")',
+    delay: 5200,
+  },
+  {
+    type: 'observation',
+    content: 'Zone approved for mixed-use, height limit 45m, FAR 3.2',
+    delay: 6000,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Regulatory',
+    content: 'check_permits(developer="Shurooq", zone="Al Majaz")',
+    delay: 6600,
+  },
+  {
+    type: 'observation',
+    content: '3 active permits, no violations, expedited review eligible',
+    delay: 7200,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Scoring',
+    content: 'calculate_roi(capex=45M, revenue_model="mixed-use", horizon=10)',
+    delay: 8000,
+  },
+  {
+    type: 'observation',
+    content: 'Projected IRR: 21.3%, NPV: $12.8M, payback period: 4.2 years',
+    delay: 8800,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Scoring',
+    content: 'assess_risk(regulatory=LOW, market=MEDIUM, liquidity=LOW)',
+    delay: 9400,
+  },
+  {
+    type: 'observation',
+    content: 'Composite risk score: 0.28 (LOW), confidence interval: 95%',
+    delay: 10000,
+  },
+  {
+    type: 'decision',
+    agent: 'Supervisor',
+    content: 'Score 92/100 \u2014 Strong investment candidate. High ROI, low regulatory risk, strong demographic tailwinds.',
+    delay: 10800,
+  },
 ]
 
-function Demo({ isInView }: { isInView: boolean }) {
-  return (
-    <div className="space-y-6">
-      {/* Agent network */}
-      <div className="flex items-center justify-around relative">
-        <AgentNode icon={Database} label="Market Data" delay={0.2} size="sm" />
-        <AgentNode icon={Globe} label="Global Trends" delay={0.4} size="sm" />
-        <AgentNode icon={FileText} label="Regulations" delay={0.6} size="sm" />
-
-        {/* Center scoring engine */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-4">
-          <AgentNode
-            icon={Brain}
-            label="AI Scoring Engine"
-            delay={0.8}
-            size="lg"
-            color="#C5A55A"
-          />
-        </div>
-      </div>
-
-      {/* Connecting lines */}
-      <svg className="w-full h-12 -mt-2">
-        {[0.2, 0.5, 0.8].map((x, i) => (
-          <motion.line
-            key={i}
-            x1={`${x * 100}%`}
-            y1="0"
-            x2="50%"
-            y2="100%"
-            stroke="#C5A55A"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-            opacity={0}
-            animate={isInView ? { opacity: 0.3 } : {}}
-            transition={{ delay: 0.8 + i * 0.2 }}
-          />
-        ))}
-      </svg>
-
-      {/* Map visualization */}
-      <div className="relative bg-midnight/50 rounded-xl p-4 mt-12 border border-gold/10 min-h-[180px]">
-        <div className="absolute top-2 left-3 text-[10px] text-warm-gray/50 uppercase tracking-widest">
-          Sharjah Investment Map
-        </div>
-        {/* Stylized map shape */}
-        <svg viewBox="0 0 100 80" className="w-full h-full opacity-20">
-          <path
-            d="M20 10 Q50 5 80 15 Q85 40 75 65 Q50 75 25 65 Q15 40 20 10Z"
-            fill="none"
-            stroke="#C5A55A"
-            strokeWidth="0.5"
-          />
-        </svg>
-        {/* Animated pins */}
-        {mapPins.map((pin) => (
-          <motion.div
-            key={pin.label}
-            className="absolute flex flex-col items-center"
-            style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ delay: pin.delay, type: 'spring' }}
-          >
-            <motion.div
-              className="absolute w-6 h-6 rounded-full bg-gold/20"
-              animate={isInView ? { scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] } : {}}
-              transition={{ delay: pin.delay + 0.5, duration: 2, repeat: Infinity }}
-            />
-            <div className="w-3 h-3 rounded-full bg-gold border border-gold-light z-10" />
-            <div className="mt-1 text-[9px] text-warm-gray whitespace-nowrap">
-              {pin.label}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Ranked results */}
-      <div className="space-y-2 mt-4">
-        <div className="text-[10px] uppercase tracking-widest text-warm-gray/50 mb-2">
-          Top Opportunities
-        </div>
-        {opportunities.map((opp, i) => (
-          <motion.div
-            key={opp.name}
-            className="flex items-center gap-3 bg-midnight/50 rounded-lg px-3 py-2 border border-gold/10"
-            initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 2.5 + i * 0.2 }}
-          >
-            <Star size={12} className="text-gold flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-warm-white truncate">{opp.name}</div>
-              <div className="text-[10px] text-warm-gray">{opp.sector}</div>
-            </div>
-            <div className="text-sm font-bold text-gold">{opp.score}</div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  )
+export const orchestratorConfig: OrchestratorConfig = {
+  supervisor: { id: 'sup', label: 'Supervisor', role: 'Coordinator', color: '#C5A55A' },
+  workers: [
+    { id: 'market', label: 'Market Research', role: 'Data Agent', color: '#22B8A6' },
+    { id: 'reg', label: 'Regulatory', role: 'Compliance', color: '#1A8A7D' },
+    { id: 'score', label: 'Scoring', role: 'Evaluator', color: '#C5A55A' },
+  ],
+  messages: [
+    { from: 'sup', to: 'market', label: 'research Al Majaz', delay: 400 },
+    { from: 'market', to: 'sup', label: '23 comps found', delay: 2000 },
+    { from: 'sup', to: 'reg', label: 'check zoning', delay: 3500 },
+    { from: 'reg', to: 'sup', label: 'approved', delay: 5000 },
+    { from: 'sup', to: 'score', label: 'evaluate ROI', delay: 6500 },
+    { from: 'score', to: 'sup', label: 'score: 92', delay: 8500 },
+  ],
 }
 
-export default function InvestmentOpportunity() {
+const opportunities = [
+  { name: 'Al Majaz Waterfront Mixed-Use', score: 92, reason: 'High ROI + low risk' },
+  { name: 'Sharjah Book Authority Hub', score: 87, reason: 'Cultural demand surge' },
+  { name: 'Muwaileh Smart District', score: 85, reason: 'Tech sector growth' },
+]
+
+export function VisualPanel({ isActive }: { isActive: boolean }) {
   return (
-    <SectionWrapper useCase={useCases[0]}>
-      {(isInView) => <Demo isInView={isInView} />}
-    </SectionWrapper>
+    <div className="space-y-2">
+      <div className="text-xs uppercase tracking-widest text-warm-gray mb-2">
+        Top Opportunities
+      </div>
+      {opportunities.map((opp, i) => (
+        <motion.div
+          key={opp.name}
+          className="flex items-center gap-3 bg-midnight/50 rounded-lg px-3 py-2 border border-gold/10"
+          initial={{ opacity: 0, x: -20 }}
+          animate={isActive ? { opacity: 1, x: 0 } : {}}
+          transition={{ delay: 11 + i * 0.3 }}
+        >
+          <Star size={12} className="text-gold flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-warm-white truncate">{opp.name}</div>
+            <div className="text-[11px] text-warm-gray italic">{opp.reason}</div>
+          </div>
+          <div className="text-sm font-bold text-gold">{opp.score}</div>
+        </motion.div>
+      ))}
+    </div>
   )
 }

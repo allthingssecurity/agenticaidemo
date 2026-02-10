@@ -1,37 +1,148 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, TrendingUp, TrendingDown, Minus, Mail, BarChart2 } from 'lucide-react'
-import SectionWrapper from '../SectionWrapper'
-import { useCases } from '../../data/useCases'
+import { Mail } from 'lucide-react'
+import type { ChatMessage } from '../ChatSimulation'
+import type { TraceStep } from '../AgentReasoningTrace'
+import type { ToolMessage } from '../MCPToolCall'
 
-const investors = [
+export const chatMessages: ChatMessage[] = [
   {
-    name: 'Al Habtoor Group',
-    sentiment: 85,
-    trend: 'up' as const,
-    lastContact: '3 days ago',
-    avatar: 'AH',
+    role: 'user',
+    content: 'Prepare a personalized outreach email for ADIA Partners \u2014 their sentiment has been declining.',
+    delay: 400,
   },
   {
-    name: 'Mubadala Investment',
-    sentiment: 72,
-    trend: 'stable' as const,
-    lastContact: '1 week ago',
-    avatar: 'MI',
+    role: 'assistant',
+    content: 'Analyzing ADIA sentiment... 12 emails scanned, 2 negative news mentions found, 3 unanswered follow-ups detected. Current sentiment score: 58/100 (declining).',
+    delay: 3500,
   },
   {
-    name: 'ADIA Partners',
-    sentiment: 58,
-    trend: 'down' as const,
-    lastContact: '2 weeks ago',
-    avatar: 'AP',
+    role: 'user',
+    content: 'What\'s driving the decline?',
+    delay: 5000,
   },
   {
-    name: 'Dubai Holdings',
-    sentiment: 90,
-    trend: 'up' as const,
-    lastContact: '1 day ago',
-    avatar: 'DH',
+    role: 'assistant',
+    content: 'Three factors: (1) unanswered follow-ups from last 2 weeks, (2) negative press about "ADIA reviewing Gulf investments," and (3) meeting notes show concern about timeline delays.',
+    delay: 7500,
+  },
+  {
+    role: 'user',
+    content: 'Draft an email that addresses these concerns. Make it data-driven \u2014 that\'s their preference.',
+    delay: 9000,
+  },
+  {
+    role: 'assistant',
+    content: 'Pulling investor profile: Mr. Al Rashid, focus on sustainability and long-term ROI. Fetching Q4 performance data...',
+    delay: 10500,
+  },
+  {
+    role: 'assistant',
+    content: 'Email drafted. Leads with Q4 outperformance (+12% vs benchmark), highlights sustainability ROI (+18% YoY), and directly addresses timeline with updated milestones. Generating the email below...',
+    delay: 13000,
+  },
+]
+
+export const reasoningSteps: TraceStep[] = [
+  {
+    type: 'tool_call',
+    agent: 'Sentiment',
+    content: 'analyze_emails(investor="ADIA Partners", days=30)',
+    delay: 500,
+  },
+  {
+    type: 'observation',
+    content: '12 emails analyzed. Tone: neutral\u2192negative trend. 3 unanswered follow-ups.',
+    delay: 1300,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Sentiment',
+    content: 'scan_news_mentions(entity="ADIA", sentiment=true)',
+    delay: 2000,
+  },
+  {
+    type: 'observation',
+    content: '2 negative mentions: "ADIA reviewing Gulf investments amid market correction"',
+    delay: 2800,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Sentiment',
+    content: 'check_meeting_notes(investor="ADIA", last_n=5)',
+    delay: 3400,
+  },
+  {
+    type: 'observation',
+    content: 'Last meeting: 14 days ago. Notes: "expressed concern about timeline delays"',
+    delay: 4200,
+  },
+  {
+    type: 'thinking',
+    agent: 'Sentiment',
+    content: '"Sentiment declining \u2014 3 unanswered follow-ups, negative news, timeline concerns. Score: 58/100."',
+    delay: 5000,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Composer',
+    content: 'get_investor_profile(id="ADIA", include_preferences=true)',
+    delay: 5800,
+  },
+  {
+    type: 'observation',
+    content: 'Focus: sustainability, long-term ROI. Prefers data-driven updates. Key contact: Mr. Al Rashid.',
+    delay: 6600,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Composer',
+    content: 'fetch_portfolio_performance(fund="Shurooq-Growth", period="Q4")',
+    delay: 7200,
+  },
+  {
+    type: 'observation',
+    content: 'Q4 returns: +12% vs benchmark. Sustainable tourism initiative: +18% YoY.',
+    delay: 8000,
+  },
+  {
+    type: 'thinking',
+    agent: 'Composer',
+    content: '"Investor interested in sustainability \u2192 highlight green initiatives. Address timeline concern directly."',
+    delay: 8800,
+  },
+  {
+    type: 'decision',
+    agent: 'Composer',
+    content: 'Email drafted: leads with Q4 outperformance, highlights sustainability ROI, addresses timeline with updated milestones.',
+    delay: 9800,
+  },
+]
+
+export const mcpMessages: ToolMessage[] = [
+  {
+    direction: 'request',
+    tool: 'analyze_sentiment',
+    params: { investor: 'ADIA', window: '30d' },
+    latency: '124ms',
+  },
+  {
+    direction: 'response',
+    tool: 'analyze_sentiment',
+    result: { score: 58, trend: 'declining', alerts: 3 },
+    latency: '124ms',
+  },
+  {
+    direction: 'request',
+    tool: 'compose_email',
+    params: { investor: 'ADIA', tone: 'reassuring' },
+    latency: '89ms',
+  },
+  {
+    direction: 'response',
+    tool: 'compose_email',
+    result: { paragraphs: 4, personalized: true },
+    latency: '89ms',
   },
 ]
 
@@ -42,171 +153,69 @@ const emailLines = [
   'I wanted to share our latest portfolio performance report.',
   '',
   'Key highlights:',
-  '- Q4 returns exceeded projections by 12%',
-  '- New sustainable tourism initiative launched',
-  '- Heritage district expansion on schedule',
+  '\u2022 Q4 returns exceeded projections by 12%',
+  '\u2022 New sustainable tourism initiative: +18% YoY',
+  '\u2022 Heritage district expansion: revised timeline attached',
   '',
-  'Would you be available for a follow-up call this week?',
+  'I understand your concerns regarding project timelines \u2014 please',
+  'find the updated milestone schedule enclosed.',
 ]
 
-function SentimentGauge({ value, isInView }: { value: number; isInView: boolean }) {
-  const color =
-    value >= 80 ? '#22B8A6' : value >= 60 ? '#C5A55A' : '#ef4444'
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-16 h-1.5 bg-midnight rounded-full overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={isInView ? { width: `${value}%` } : {}}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-        />
-      </div>
-      <span className="text-[10px] font-mono" style={{ color }}>
-        {value}
-      </span>
-    </div>
-  )
-}
-
-function Demo({ isInView }: { isInView: boolean }) {
+export function VisualPanel({ isActive }: { isActive: boolean }) {
   const [typedLines, setTypedLines] = useState(0)
-  const [showCharts, setShowCharts] = useState(false)
+  const [showEmail, setShowEmail] = useState(false)
 
   useEffect(() => {
-    if (!isInView) return
-
+    if (!isActive) return
     const timers: ReturnType<typeof setTimeout>[] = []
 
-    // Type email lines
+    timers.push(setTimeout(() => setShowEmail(true), 9000))
+
     emailLines.forEach((_, i) => {
-      timers.push(setTimeout(() => setTypedLines(i + 1), 2000 + i * 300))
+      timers.push(setTimeout(() => setTypedLines(i + 1), 9500 + i * 250))
     })
 
-    timers.push(setTimeout(() => setShowCharts(true), 2000 + emailLines.length * 300 + 500))
-
     return () => timers.forEach(clearTimeout)
-  }, [isInView])
+  }, [isActive])
 
-  const trendIcons = {
-    up: TrendingUp,
-    down: TrendingDown,
-    stable: Minus,
-  }
+  if (!showEmail) return null
 
   return (
-    <div className="space-y-5">
-      {/* Investor cards */}
-      <div className="grid grid-cols-2 gap-2">
-        {investors.map((inv, i) => {
-          const TrendIcon = trendIcons[inv.trend]
-          return (
-            <motion.div
-              key={inv.name}
-              className="p-3 rounded-xl border border-teal/10 bg-midnight/50"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={isInView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ delay: i * 0.15 }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-full bg-teal/20 border border-teal/30 flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-teal-light">
-                    {inv.avatar}
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-medium text-warm-white truncate">
-                    {inv.name}
-                  </div>
-                  <div className="text-[8px] text-warm-gray">{inv.lastContact}</div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <SentimentGauge value={inv.sentiment} isInView={isInView} />
-                <TrendIcon
-                  size={12}
-                  className={
-                    inv.trend === 'up'
-                      ? 'text-teal-light'
-                      : inv.trend === 'down'
-                      ? 'text-red-400'
-                      : 'text-warm-gray'
-                  }
-                />
-              </div>
-            </motion.div>
-          )
-        })}
+    <motion.div
+      className="bg-midnight/50 rounded-xl border border-teal/10 overflow-hidden"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <div className="px-3 py-2 border-b border-teal/10 flex items-center gap-2">
+        <Mail size={12} className="text-teal-light" />
+        <span className="text-[10px] text-warm-gray">
+          AI-Generated Outreach &mdash; ADIA Partners
+        </span>
+        <motion.div
+          className="ml-auto w-1.5 h-1.5 rounded-full bg-teal"
+          animate={{ opacity: [1, 0.3, 1] }}
+          transition={{ duration: 1, repeat: Infinity }}
+        />
       </div>
-
-      {/* AI composing email */}
-      <div className="bg-midnight/50 rounded-xl border border-teal/10 overflow-hidden">
-        <div className="px-3 py-2 border-b border-teal/10 flex items-center gap-2">
-          <Mail size={12} className="text-teal-light" />
-          <span className="text-[10px] text-warm-gray">
-            AI Composing Outreach — ADIA Partners
-          </span>
+      <div className="p-3 font-mono text-[10px] text-warm-gray/80 leading-relaxed min-h-[100px]">
+        {emailLines.slice(0, typedLines).map((line, i) => (
           <motion.div
-            className="ml-auto w-1.5 h-1.5 rounded-full bg-teal"
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
+            key={i}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={line === '' ? 'h-2.5' : ''}
+          >
+            {line}
+          </motion.div>
+        ))}
+        {typedLines < emailLines.length && typedLines > 0 && (
+          <motion.span
+            className="inline-block w-1.5 h-3 bg-teal-light ml-0.5"
+            animate={{ opacity: [1, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
           />
-        </div>
-        <div className="p-3 font-mono text-[10px] text-warm-gray/80 leading-relaxed min-h-[120px]">
-          {emailLines.slice(0, typedLines).map((line, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={line === '' ? 'h-3' : ''}
-            >
-              {line}
-            </motion.div>
-          ))}
-          {typedLines < emailLines.length && typedLines > 0 && (
-            <motion.span
-              className="inline-block w-1.5 h-3 bg-teal-light ml-0.5"
-              animate={{ opacity: [1, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
-            />
-          )}
-        </div>
+        )}
       </div>
-
-      {/* Engagement metrics */}
-      {showCharts && (
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Open Rate', value: 78, color: '#1A8A7D' },
-            { label: 'Reply Rate', value: 45, color: '#22B8A6' },
-            { label: 'Meeting Set', value: 32, color: '#C5A55A' },
-          ].map((metric, i) => (
-            <motion.div
-              key={metric.label}
-              className="text-center p-2 rounded-xl border border-white/5 bg-midnight/50"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15 }}
-            >
-              <BarChart2 size={12} className="mx-auto mb-1" style={{ color: metric.color }} />
-              <div className="text-sm font-bold" style={{ color: metric.color }}>
-                {metric.value}%
-              </div>
-              <div className="text-[9px] text-warm-gray">{metric.label}</div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-export default function InvestorRelations() {
-  return (
-    <SectionWrapper useCase={useCases[5]} reversed>
-      {(isInView) => <Demo isInView={isInView} />}
-    </SectionWrapper>
+    </motion.div>
   )
 }

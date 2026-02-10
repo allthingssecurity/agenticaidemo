@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Scan, AlertCircle, FileText, Shield } from 'lucide-react'
-import SectionWrapper from '../SectionWrapper'
-import { useCases } from '../../data/useCases'
+import { Scan, AlertCircle } from 'lucide-react'
+import type { ChatMessage } from '../ChatSimulation'
+import type { TraceStep } from '../AgentReasoningTrace'
 
 const problemAreas = [
   { x: 30, y: 25, label: 'Roof erosion', severity: 'high' },
@@ -10,38 +10,128 @@ const problemAreas = [
   { x: 45, y: 70, label: 'Foundation shift', severity: 'low' },
 ]
 
-const recommendations = [
+export const chatMessages: ChatMessage[] = [
   {
-    icon: Shield,
-    title: 'Immediate Stabilization',
-    desc: 'Reinforce roof structure — estimated 2 weeks',
-    priority: 'Critical',
+    role: 'user',
+    content: 'Analyze structural condition of Al Hisn Fort and recommend conservation priorities.',
+    delay: 400,
   },
   {
-    icon: FileText,
-    title: 'Document & Archive',
-    desc: '3D scan + photogrammetry before intervention',
-    priority: 'High',
+    role: 'assistant',
+    content: 'Running computer vision analysis on building SHJ-042. Detected 3 anomalies: roof erosion (94% confidence), wall crack (87%), and foundation shift (72%).',
+    delay: 3000,
   },
   {
-    icon: Shield,
-    title: 'Long-term Preservation',
-    desc: 'Climate-controlled enclosure for artifacts',
-    priority: 'Medium',
+    role: 'user',
+    content: 'How serious is the roof erosion?',
+    delay: 4500,
+  },
+  {
+    role: 'assistant',
+    content: 'Critical. FEM simulation shows stress at ridge: 340 MPa vs 380 MPa yield strength. Safety factor only 1.12 (marginal). Estimated remaining life: 8-14 months without intervention.',
+    delay: 7000,
+  },
+  {
+    role: 'user',
+    content: 'What materials should we use for repair? Must match the original construction.',
+    delay: 8500,
+  },
+  {
+    role: 'assistant',
+    content: 'Found 23 historical records including original 1823 blueprints. Original materials: coral stone + chandal wood beams. Modern equivalent: reinforced lime mortar \u2014 preserves authenticity while adding structural strength.',
+    delay: 11000,
+  },
+  {
+    role: 'assistant',
+    content: 'Conservation priorities: (1) Roof stabilization with lime mortar \u2014 2 weeks, (2) Full 3D scan before intervention, (3) Climate enclosure for artifacts. Recommend starting immediately.',
+    delay: 13500,
   },
 ]
 
-function Demo({ isInView }: { isInView: boolean }) {
+export const reasoningSteps: TraceStep[] = [
+  {
+    type: 'tool_call',
+    agent: 'Vision',
+    content: 'analyze_image(building_id="SHJ-042", model="heritage-detect-v3")',
+    delay: 600,
+  },
+  {
+    type: 'observation',
+    content: 'Detected: roof_erosion (conf: 94%), wall_crack (conf: 87%), foundation_shift (conf: 72%)',
+    delay: 1400,
+  },
+  {
+    type: 'thinking',
+    agent: 'Vision',
+    content: '"3 anomalies found. Roof erosion is highest confidence \u2014 prioritizing structural analysis."',
+    delay: 2200,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Structural',
+    content: 'run_fem_simulation(mesh="SHJ-042-roof", load="wind+rain", iterations=1000)',
+    delay: 3000,
+  },
+  {
+    type: 'observation',
+    content: 'Stress concentration at ridge: 340 MPa (yield: 380 MPa). Safety factor: 1.12 \u2014 MARGINAL',
+    delay: 3800,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Structural',
+    content: 'estimate_remaining_life(component="roof", wear_rate=0.023)',
+    delay: 4400,
+  },
+  {
+    type: 'observation',
+    content: 'Estimated remaining life: 8-14 months without intervention.',
+    delay: 5200,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Archive',
+    content: 'search_historical_records(building="Al Hisn Fort", era="pre-1950")',
+    delay: 6000,
+  },
+  {
+    type: 'observation',
+    content: 'Found 23 records: original blueprints (1823), 4 restoration reports, 18 photographs.',
+    delay: 6800,
+  },
+  {
+    type: 'tool_call',
+    agent: 'Archive',
+    content: 'match_materials(era="1820s", region="Gulf", component="roof")',
+    delay: 7400,
+  },
+  {
+    type: 'observation',
+    content: 'Original: coral stone + chandal wood beams. Modern equiv: reinforced lime mortar.',
+    delay: 8200,
+  },
+  {
+    type: 'thinking',
+    agent: 'Conservation',
+    content: '"Roof is critical \u2014 marginal safety factor + 8-14 month life. Must preserve original materials while reinforcing."',
+    delay: 9000,
+  },
+  {
+    type: 'decision',
+    agent: 'Conservation',
+    content: 'Priority 1: Roof stabilization (2 weeks, lime mortar). Priority 2: 3D scan before intervention. Priority 3: Climate enclosure for artifacts.',
+    delay: 10000,
+  },
+]
+
+export function VisualPanel({ isActive }: { isActive: boolean }) {
   const [scanProgress, setScanProgress] = useState(0)
   const [showProblems, setShowProblems] = useState(false)
-  const [showRecs, setShowRecs] = useState(false)
 
   useEffect(() => {
-    if (!isInView) return
-
+    if (!isActive) return
     const timers: ReturnType<typeof setTimeout>[] = []
 
-    // Animate scan line
     let frame = 0
     const scanInterval = setInterval(() => {
       frame++
@@ -50,20 +140,18 @@ function Demo({ isInView }: { isInView: boolean }) {
     }, 40)
 
     timers.push(setTimeout(() => setShowProblems(true), 2500))
-    timers.push(setTimeout(() => setShowRecs(true), 3500))
 
     return () => {
       clearInterval(scanInterval)
       timers.forEach(clearTimeout)
     }
-  }, [isInView])
+  }, [isActive])
 
   return (
-    <div className="space-y-5">
-      {/* Building SVG with path animation */}
-      <div className="relative bg-midnight/50 rounded-xl border border-gold-light/10 p-4 min-h-[220px] overflow-hidden">
+    <div className="space-y-3">
+      {/* Building SVG with scan */}
+      <div className="relative bg-midnight/50 rounded-xl border border-gold-light/10 p-4 min-h-[180px] overflow-hidden">
         <svg viewBox="0 0 200 150" className="w-full h-full">
-          {/* Building outline - path animation */}
           <motion.path
             d="M40 130 L40 50 L60 30 L100 20 L140 30 L160 50 L160 130 Z"
             fill="none"
@@ -71,10 +159,9 @@ function Demo({ isInView }: { isInView: boolean }) {
             strokeWidth="1.5"
             strokeDasharray="500"
             strokeDashoffset={500}
-            animate={isInView ? { strokeDashoffset: 0 } : {}}
+            animate={isActive ? { strokeDashoffset: 0 } : {}}
             transition={{ duration: 2, ease: 'easeInOut' }}
           />
-          {/* Door */}
           <motion.path
             d="M85 130 L85 100 Q100 95 115 100 L115 130"
             fill="none"
@@ -82,10 +169,9 @@ function Demo({ isInView }: { isInView: boolean }) {
             strokeWidth="1"
             strokeDasharray="100"
             strokeDashoffset={100}
-            animate={isInView ? { strokeDashoffset: 0 } : {}}
+            animate={isActive ? { strokeDashoffset: 0 } : {}}
             transition={{ delay: 1.5, duration: 1 }}
           />
-          {/* Windows */}
           {[
             [55, 60, 70, 80],
             [130, 60, 145, 80],
@@ -102,11 +188,10 @@ function Demo({ isInView }: { isInView: boolean }) {
               stroke="#D4BA78"
               strokeWidth="0.8"
               opacity={0}
-              animate={isInView ? { opacity: 0.6 } : {}}
+              animate={isActive ? { opacity: 0.6 } : {}}
               transition={{ delay: 1.8 + i * 0.2 }}
             />
           ))}
-          {/* Minaret */}
           <motion.path
             d="M95 20 L100 5 L105 20"
             fill="none"
@@ -114,10 +199,9 @@ function Demo({ isInView }: { isInView: boolean }) {
             strokeWidth="1"
             strokeDasharray="40"
             strokeDashoffset={40}
-            animate={isInView ? { strokeDashoffset: 0 } : {}}
+            animate={isActive ? { strokeDashoffset: 0 } : {}}
             transition={{ delay: 2, duration: 0.5 }}
           />
-          {/* Scan line */}
           {scanProgress < 100 && (
             <motion.line
               x1="30"
@@ -131,15 +215,11 @@ function Demo({ isInView }: { isInView: boolean }) {
           )}
         </svg>
 
-        {/* Scan progress */}
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <Scan size={12} className="text-teal-light" />
-          <span className="text-[10px] text-teal-light font-mono">
-            {scanProgress}%
-          </span>
+          <span className="text-[10px] text-teal-light font-mono">{scanProgress}%</span>
         </div>
 
-        {/* Problem markers */}
         {showProblems &&
           problemAreas.map((area) => (
             <motion.div
@@ -172,64 +252,12 @@ function Demo({ isInView }: { isInView: boolean }) {
                   }
                 />
               </motion.div>
-              <span className="text-[8px] text-warm-gray whitespace-nowrap bg-midnight/80 px-1.5 py-0.5 rounded">
+              <span className="text-[11px] text-warm-gray whitespace-nowrap bg-midnight/80 px-1.5 py-0.5 rounded">
                 {area.label}
               </span>
             </motion.div>
           ))}
       </div>
-
-      {/* Archive documents + recommendations */}
-      {showRecs && (
-        <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-widest text-warm-gray/50">
-            Preservation Recommendations
-          </div>
-          {recommendations.map((rec, i) => {
-            const Icon = rec.icon
-            return (
-              <motion.div
-                key={rec.title}
-                className="flex items-start gap-3 p-3 rounded-xl border border-gold-light/10 bg-midnight/50"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.2 }}
-              >
-                <div className="w-7 h-7 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center flex-shrink-0">
-                  <Icon size={13} className="text-gold-light" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-warm-white">
-                    {rec.title}
-                  </div>
-                  <div className="text-[10px] text-warm-gray mt-0.5">
-                    {rec.desc}
-                  </div>
-                </div>
-                <span
-                  className={`text-[9px] px-2 py-0.5 rounded-full ${
-                    rec.priority === 'Critical'
-                      ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                      : rec.priority === 'High'
-                      ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                      : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                  }`}
-                >
-                  {rec.priority}
-                </span>
-              </motion.div>
-            )
-          })}
-        </div>
-      )}
     </div>
-  )
-}
-
-export default function HeritageConservation() {
-  return (
-    <SectionWrapper useCase={useCases[4]}>
-      {(isInView) => <Demo isInView={isInView} />}
-    </SectionWrapper>
   )
 }

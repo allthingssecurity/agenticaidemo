@@ -1,36 +1,28 @@
-import { motion } from 'framer-motion'
-import { useInView } from '../hooks/useInView'
-
 export default function Footer() {
-  const { ref, isInView } = useInView(0.3)
-
   return (
-    <footer ref={ref} className="relative py-16 border-t border-gold/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="w-12 h-12 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto mb-4">
-            <span className="font-display font-bold text-gold text-xl">S</span>
+    <footer className="border-t border-white/[0.06] mt-8">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Left: branding */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center">
+            <span className="font-display font-bold text-gold text-sm">S</span>
           </div>
-          <h3 className="font-display text-xl font-semibold text-warm-white mb-2">
-            Shurooq Agentic AI
-          </h3>
-          <p className="text-warm-gray text-sm max-w-md mx-auto mb-6">
-            Sharjah Investment and Development Authority — Pioneering intelligent
-            governance through multi-agent AI systems.
-          </p>
-          <div className="flex items-center justify-center gap-6 text-xs text-warm-gray/60">
-            <span>Concept Demo</span>
-            <span className="w-1 h-1 rounded-full bg-gold/30" />
-            <span>Animated Prototypes</span>
-            <span className="w-1 h-1 rounded-full bg-gold/30" />
-            <span>&copy; {new Date().getFullYear()} Shurooq</span>
+          <div>
+            <div className="font-display text-sm font-semibold text-warm-white">
+              Shurooq Agentic AI
+            </div>
+            <div className="text-xs text-warm-gray">
+              Sharjah Investment & Development Authority
+            </div>
           </div>
-        </motion.div>
+        </div>
+
+        {/* Right: meta */}
+        <div className="flex items-center gap-4 text-xs text-warm-gray">
+          <span>Concept Demo</span>
+          <span className="w-1 h-1 rounded-full bg-white/10" />
+          <span>&copy; {new Date().getFullYear()} Shurooq</span>
+        </div>
       </div>
     </footer>
   )
